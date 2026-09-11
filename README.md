@@ -18,3 +18,5 @@ Cloudflare Pages can publish the repository with:
 Alternatively, the included GitHub Pages workflow builds and publishes the same `dist/` site whenever `main` changes. Enable **GitHub Actions** as the Pages source in the repository settings to use it.
 
 Run `npm run check` after a build to verify the article count, URLs, sitemap, and absence of image tags.
+
+The publishing workflow runs these checks before deployment. See [site operations](Wiki/01-Site-Operations.md) for sitemap, indexing and Google-service setup details.

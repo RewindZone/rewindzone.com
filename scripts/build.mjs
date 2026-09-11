@@ -55,7 +55,7 @@ function footer(rootPrefix) {
 function layout({ title, description, canonicalPath = '/', body, article = null, searchable = false }) {
   const pageTitle = title === 'RewindZone' ? title : `${title} | RewindZone`
   const canonical = `${siteUrl}${canonicalPath}`
-  const rootPrefix = canonicalPath === '/' || canonicalPath === '/404.html' ? './' : '../'
+  const rootPrefix = '/'
   const structuredData = article ? {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -80,6 +80,7 @@ function layout({ title, description, canonicalPath = '/', body, article = null,
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${escapeHtml(pageTitle)}</title>
   <meta name="description" content="${escapeHtml(description)}">
+${canonicalPath === '/404.html' ? '  <meta name="robots" content="noindex">' : ''}
   <link rel="canonical" href="${canonical}">
   <meta property="og:type" content="${article ? 'article' : 'website'}">
   <meta property="og:site_name" content="RewindZone">
