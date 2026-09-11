@@ -69,7 +69,7 @@ a:hover { color: var(--accent); }
 
 .masthead {
   border-bottom: 4px solid var(--ink);
-  padding: clamp(3rem, 10vw, 7.5rem) 0 2rem;
+  padding: clamp(2rem, 6vw, 4.5rem) 0 2rem;
 }
 .eyebrow {
   color: var(--accent);
@@ -80,7 +80,7 @@ a:hover { color: var(--accent); }
   text-transform: uppercase;
 }
 .masthead h1, .article-header h1, .page-header h1 {
-  font-size: clamp(3.2rem, 10vw, 8.5rem);
+  font-size: clamp(2.8rem, 8vw, 6.5rem);
   letter-spacing: -.075em;
   line-height: .82;
   margin: .35rem 0 1rem;
@@ -134,9 +134,9 @@ a:hover { color: var(--accent); }
 .home-search { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 2rem; max-width: 42rem; }
 .home-search label { flex-basis: 100%; font: 700 .72rem Arial, sans-serif; letter-spacing: .1em; text-transform: uppercase; }
 .home-search input { background: transparent; border: 1px solid var(--ink); flex: 1 1 15rem; font: inherit; padding: .6rem; }
-.featured-categories, .home-latest, .category-section { margin: 3rem 0; }
+.featured-categories, .home-latest, .category-section { margin: 2rem 0; }
 .section-heading { align-items: baseline; display: flex; gap: 1rem; justify-content: space-between; }
-.section-heading h2, .category-section h2 { font-size: clamp(1.8rem, 4vw, 2.8rem); letter-spacing: -.04em; line-height: 1; }
+.section-heading h2, .category-section h2 { font-size: clamp(1.55rem, 3vw, 2.2rem); letter-spacing: -.04em; line-height: 1; }
 .category-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
 .category-card { border-top: 3px solid var(--accent); display: grid; gap: .35rem; padding: 1rem 0; text-decoration: none; }
 .category-card strong, .tag-list, .breadcrumbs { font: 700 .68rem Arial, sans-serif; letter-spacing: .07em; text-transform: uppercase; }
