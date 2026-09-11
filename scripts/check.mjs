@@ -76,6 +76,31 @@ for (const url of sitemapUrls) {
 for (const [canonical, file] of canonicalByFile) {
   if (path.basename(file) !== '404.html' && !sitemapSet.has(canonical)) failures.push(`Sitemap missing canonical: ${canonical}`)
 }
+
+const archive = path.join(out, 'archive', 'index.html')
+const categoriesIndex = path.join(out, 'categories', 'index.html')
+if (!fs.existsSync(archive)) failures.push('Missing full archive page')
+if (!fs.existsSync(categoriesIndex)) failures.push('Missing category index page')
+
+for (const url of sitemapUrls.filter(url => url.includes('/categories/') && url !== `${siteUrl}/categories/`)) {
+  const file = canonicalByFile.get(url)
+  if (!file) continue
+  const html = fs.readFileSync(file, 'utf8')
+  const cardCount = (html.match(/data-article-card/g) || []).length
+  const displayedCount = html.match(/data-result-count[^>]*>(\d+) articles/i)?.[1]
+  if (!/data-archive-search/.test(html) || !/data-archive-category/.test(html) || !/data-filter-reset/.test(html)) {
+    failures.push(`Category filters missing: ${path.relative(root, file)}`)
+  }
+  if (displayedCount !== undefined && Number(displayedCount) !== cardCount) {
+    failures.push(`Category count does not match rendered cards: ${path.relative(root, file)}`)
+  }
+}
+
+if (fs.existsSync(archive)) {
+  const archiveHtml = fs.readFileSync(archive, 'utf8')
+  if ((archiveHtml.match(/data-article-card/g) || []).length !== articles.length) failures.push('Full archive does not render every article')
+  if (!/data-no-results/.test(archiveHtml)) failures.push('Full archive no-results feedback missing')
+}
 const robots = fs.readFileSync(path.join(out, 'robots.txt'), 'utf8')
 if (!new RegExp(`^Sitemap:\\s*${siteUrl.replace('.', '\\.')}/sitemap\\.xml\\s*$`, 'mi').test(robots)) failures.push('robots.txt sitemap declaration missing or incorrect')
 const notFound = fs.readFileSync(path.join(out, '404.html'), 'utf8')

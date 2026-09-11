@@ -41,14 +41,14 @@ function header(rootPrefix) {
   return `<a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
     <a class="brand" href="${rootPrefix}" aria-label="RewindZone home">Rewind<span>Zone</span></a>
-    <nav class="site-nav" aria-label="Main navigation"><a href="${rootPrefix}">Archive</a><a href="${rootPrefix}about/">About</a></nav>
+    <nav class="site-nav" aria-label="Main navigation"><a href="${rootPrefix}">Home</a><a href="${rootPrefix}categories/">Browse</a><a href="${rootPrefix}archive/">Archive</a><a href="${rootPrefix}about/">About</a></nav>
   </header>`
 }
 
 function footer(rootPrefix) {
   return `<footer class="site-footer">
     <span>© ${new Date().getUTCFullYear()} RewindZone</span>
-    <nav aria-label="Footer navigation"><a href="${rootPrefix}about/">About</a><a href="${rootPrefix}privacy/">Privacy</a></nav>
+    <nav aria-label="Footer navigation"><a href="${rootPrefix}archive/">Archive</a><a href="${rootPrefix}about/">About</a><a href="${rootPrefix}privacy/">Privacy</a></nav>
   </footer>`
 }
 
@@ -142,24 +142,128 @@ function renderBlocks(article) {
 
 const sortedArticles = [...articles].sort((a, b) => new Date(b.published_at || 0) - new Date(a.published_at || 0))
 
-const cards = sortedArticles.map(article => {
-  const search = `${article.title} ${article.excerpt || ''}`.toLocaleLowerCase()
-  return `<li class="article-card" data-article-card data-search="${escapeHtml(search)}">
+// Evidence is deliberately limited: article types come from titles, genres from
+// titles/excerpts, and a four-digit year counts only when parenthesised as a release year.
+const taxonomyRules = {
+  types: [
+    ['film-reviews', 'Film Reviews', /\b(reviews?|deep dive|revisit(?:ed)?|how does it hold up)\b/i],
+    ['cast-then-now', 'Cast Then & Now', /\b(cast|then and now|where are they now)\b/i],
+    ['profiles', 'Actor & Director Profiles', /\b(actor|actress|director|filmmaker|filmography|career|hollywood journey|rise to stardom|top \d+ (?:movies|films))\b/i],
+    ['lists-recommendations', 'Lists & Recommendations', /\b(best|ranked|ranking|top \d+|essential|forgotten|overlooked|hidden gem|underrated|must.watch|movies? (?:from|to watch)|film collection)\b/i],
+    ['film-history-essays', 'Film History & Essays', /\b(analysis|an ode|uncovered|cultural phenomenon|history|cinema)\b/i],
+    ['streaming-guides', 'Streaming guides', /\b(streaming|plex|pluto tv|free movies)\b/i],
+  ],
+  genres: [
+    ['action', 'Action'], ['comedy', 'Comedy'], ['drama', 'Drama'], ['horror', 'Horror'],
+    ['thriller', 'Thriller'], ['western', 'Westerns'], ['science-fiction', 'Science fiction'],
+    ['crime', 'Crime'], ['war', 'War'], ['family', 'Family'], ['animation', 'Animation'],
+  ],
+}
+
+function classify(article) {
+  const title = article.title || ''
+  const evidence = `${title} ${article.excerpt || ''}`
+  const labels = []
+
+  for (const [slug, label, pattern] of taxonomyRules.types) {
+    if (pattern.test(title)) labels.push({ group: 'type', slug, label })
+  }
+  if (/\bwhat happened to\b/i.test(title) && !/\b(cast|pictures|studio|band)\b/i.test(title)) {
+    labels.push({ group: 'type', slug: 'profiles', label: 'Actor & Director Profiles' })
+  }
+
+  const explicitDecades = [...title.matchAll(/\b(?:(19[5-9]|20[0-2])0|(50|60|70|80|90))s\b/gi)]
+    .map(match => match[1] ? `${match[1]}0` : `19${match[2]}`)
+  const parenthesisedReleaseYear = title.match(/\((19[5-9]\d|20[0-2]\d)\)/)?.[1]
+  for (const decade of new Set(explicitDecades.length ? explicitDecades : parenthesisedReleaseYear ? [`${parenthesisedReleaseYear.slice(0, 3)}0`] : [])) {
+    labels.push({ group: 'decade', slug: decade, label: `${decade}s` })
+  }
+
+  for (const [slug, label] of taxonomyRules.genres) {
+    if (new RegExp(`\\b${slug.replace('-', '[ -]?')}s?\\b`, 'i').test(evidence)) labels.push({ group: 'genre', slug, label })
+  }
+  return [...new Map(labels.map(label => [`${label.group}/${label.slug}`, label])).values()]
+}
+
+const labelsBySlug = new Map(articles.map(article => [article.slug, classify(article)]))
+const categories = [...new Map([...labelsBySlug.values()].flat().map(label => [`${label.group}/${label.slug}`, label])).values()]
+  .map(label => ({ ...label, articles: sortedArticles.filter(article => labelsBySlug.get(article.slug).some(candidate => candidate.group === label.group && candidate.slug === label.slug)) }))
+  .filter(category => category.articles.length >= 3)
+  .sort((a, b) => a.group.localeCompare(b.group) || a.label.localeCompare(b.label))
+const publishedCategories = new Set(categories.map(category => `${category.group}/${category.slug}`))
+
+function breadcrumbs(items) {
+  return `<nav class="breadcrumbs" aria-label="Breadcrumb"><ol>${items.map((item, index) => `<li>${index === items.length - 1 ? `<span aria-current="page">${escapeHtml(item.label)}</span>` : `<a href="${item.href}">${escapeHtml(item.label)}</a>`}</li>`).join('')}</ol></nav>`
+}
+
+function articleCard(article) {
+  const labels = labelsBySlug.get(article.slug).filter(label => publishedCategories.has(`${label.group}/${label.slug}`))
+  const search = `${article.title} ${article.excerpt || ''} ${labels.map(label => label.label).join(' ')}`.toLocaleLowerCase()
+  return `<li class="article-card" data-article-card data-search="${escapeHtml(search)}" data-categories="${escapeHtml(labels.map(label => `${label.group}/${label.slug}`).join(' '))}">
     <time datetime="${escapeHtml(isoDate(article.published_at))}">${escapeHtml(formatDate(article.published_at))}</time>
-    <div><h2><a href="./${escapeHtml(article.slug)}/">${escapeHtml(article.title)}</a></h2>${article.excerpt ? `<p>${escapeHtml(article.excerpt)}</p>` : ''}</div>
+    <div><h2><a href="/${escapeHtml(article.slug)}/">${escapeHtml(article.title)}</a></h2>${article.excerpt ? `<p>${escapeHtml(article.excerpt)}</p>` : ''}${labels.length ? `<p class="tag-list">${labels.map(label => `<a href="/categories/${label.group}/${label.slug}/">${escapeHtml(label.label)}</a>`).join('')}</p>` : ''}</div>
   </li>`
-}).join('\n')
+}
+
+function filters(selected = '', scope = sortedArticles) {
+  const scopeSlugs = new Set(scope.map(article => article.slug))
+  const options = categories.filter(category => category.articles.some(article => scopeSlugs.has(article.slug)))
+  return `<div class="archive-tools"><div><label for="archive-search">Search the archive</label><input id="archive-search" data-archive-search type="search" placeholder="Title, excerpt or category" autocomplete="off"></div><div><label for="archive-category">Filter by category</label><select id="archive-category" data-archive-category><option value="">All categories</option>${options.map(category => `<option value="${category.group}/${category.slug}"${selected === `${category.group}/${category.slug}` ? ' selected' : ''}>${escapeHtml(category.label)} (${category.articles.filter(article => scopeSlugs.has(article.slug)).length})</option>`).join('')}</select></div><button type="button" data-filter-reset>Reset</button><p class="result-count" data-result-count aria-live="polite">${scope.length} articles</p></div><p class="no-results" data-no-results role="status" hidden>No archive articles match that search and category. Clear one or both filters and try again.</p>`
+}
+
+const ignoredRelatedWords = new Set('movie movies film films from with that then where best your this cast ranked ranking what happened now years later today star stars story stories actor actors actress director greatest worst most about which their they have still look back life into after before guide essential forgotten classic classics complete revisit revisited review reviews cinema hollywood history timeless underrated unforgettable memorable performances revealed updated update'.split(' '))
+function subjectWords(title) {
+  return [...new Set(title.toLowerCase().split(/[^a-z]+/).filter(word => word.length > 3 && !ignoredRelatedWords.has(word)))]
+}
+const subjectWordsBySlug = new Map(articles.map(article => [article.slug, subjectWords(article.title)]))
+const subjectFrequency = new Map()
+for (const words of subjectWordsBySlug.values()) for (const word of words) subjectFrequency.set(word, (subjectFrequency.get(word) || 0) + 1)
+
+function relatedArticles(article) {
+  const ownLabels = new Set(labelsBySlug.get(article.slug).map(label => `${label.group}/${label.slug}`))
+  const words = new Set(subjectWordsBySlug.get(article.slug))
+  return sortedArticles.filter(candidate => candidate.slug !== article.slug).map(candidate => {
+    const shared = labelsBySlug.get(candidate.slug).filter(label => ownLabels.has(`${label.group}/${label.slug}`)).length
+    const overlap = subjectWordsBySlug.get(candidate.slug).filter(word => words.has(word))
+    const specific = overlap.some(word => word.length >= 5 && subjectFrequency.get(word) <= 8)
+    return { candidate, score: overlap.reduce((score, word) => score + 20 / Math.sqrt(subjectFrequency.get(word)), 0) + shared, qualifies: overlap.length >= 2 || specific }
+  }).filter(result => result.qualifies).sort((a, b) => b.score - a.score || new Date(b.candidate.published_at) - new Date(a.candidate.published_at)).slice(0, 3)
+}
 
 write('index.html', layout({
   title: 'RewindZone',
   description: 'Independent film and television writing from the RewindZone archive.',
-  searchable: true,
   body: `<main id="main" class="shell">
-    <section class="masthead"><div class="eyebrow">Film · Television · Culture</div><h1>The archive, rewound.</h1><p>Original RewindZone articles, preserved in one simple place.</p></section>
-    <div class="archive-tools"><label for="archive-search"><span data-result-count>${articles.length} articles</span></label><input id="archive-search" data-archive-search type="search" placeholder="Search the archive" autocomplete="off"></div>
-    <ol class="article-list">${cards}</ol>
+    <section class="masthead"><div class="eyebrow">Film · Television · Culture</div><h1>The archive, rewound.</h1><p>Original RewindZone articles, preserved in one simple place.</p><form class="home-search" action="/archive/" method="get"><label for="home-search">Search all ${articles.length} articles</label><input id="home-search" name="q" type="search" placeholder="Search titles and excerpts"><button type="submit">Search</button></form></section>
+    <section class="featured-categories"><div class="section-heading"><h2>Browse by article type</h2><a href="/categories/">All categories</a></div><div class="category-grid">${categories.filter(category => category.group === 'type').map(category => `<a class="category-card" href="/categories/${category.group}/${category.slug}/"><span>${escapeHtml(category.label)}</span><strong>${category.articles.length} articles</strong></a>`).join('')}</div></section>
+    <section class="home-latest"><div class="section-heading"><h2>From the archive</h2><a href="/archive/">Full archive</a></div><p>A selection from across the collection. Articles retain their original publication dates; streaming availability may have changed.</p><ol class="article-list">${[...new Map(categories.filter(category => category.group === 'type').map(category => [category.articles[0].slug, category.articles[0]])).values()].map(articleCard).join('\n')}</ol></section>
   </main>`,
 }))
+
+write('archive/index.html', layout({
+  title: 'Full archive',
+  description: `Browse and search all ${articles.length} original RewindZone articles.`,
+  canonicalPath: '/archive/',
+  searchable: true,
+  body: `<main id="main" class="shell archive-page">${breadcrumbs([{ label: 'Home', href: '/' }, { label: 'Archive' }])}<header class="page-intro"><div class="eyebrow">All original writing</div><h1>Full archive</h1><p>Original publication dates are preserved. This is an archive, not a guide to current streaming availability.</p></header>${filters()}<ol class="article-list">${sortedArticles.map(articleCard).join('\n')}</ol></main>`,
+}))
+
+write('categories/index.html', layout({
+  title: 'Browse the archive',
+  description: 'Browse RewindZone articles by type, decade and genre.',
+  canonicalPath: '/categories/',
+  body: `<main id="main" class="shell">${breadcrumbs([{ label: 'Home', href: '/' }, { label: 'Browse' }])}<header class="page-intro"><div class="eyebrow">Browse the archive</div><h1>Find a starting point</h1><p>Explore the archive by article type, decade or genre.</p></header>${['type', 'decade', 'genre'].map(group => { const list = categories.filter(category => category.group === group); const label = group === 'type' ? 'Article type' : group === 'decade' ? 'Decade' : 'Genre'; return list.length ? `<section class="category-section"><h2>${label}</h2><div class="category-grid">${list.map(category => `<a class="category-card" href="/categories/${category.group}/${category.slug}/"><span>${escapeHtml(category.label)}</span><strong>${category.articles.length} articles</strong></a>`).join('')}</div></section>` : '' }).join('')}</main>`,
+}))
+
+for (const category of categories) {
+  write(`categories/${category.group}/${category.slug}/index.html`, layout({
+    title: category.label,
+    description: `Original RewindZone articles filed under ${category.label}.`,
+    canonicalPath: `/categories/${category.group}/${category.slug}/`,
+    searchable: true,
+    body: `<main id="main" class="shell archive-page">${breadcrumbs([{ label: 'Home', href: '/' }, { label: 'Browse', href: '/categories/' }, { label: category.label }])}<header class="page-intro"><div class="eyebrow">${escapeHtml(category.group)}</div><h1>${escapeHtml(category.label)}</h1></header>${filters(`${category.group}/${category.slug}`, category.articles)}<ol class="article-list">${category.articles.map(articleCard).join('\n')}</ol></main>`,
+  }))
+}
 
 for (const article of articles) {
   const description = article.meta_description || article.excerpt || `Read ${article.title} in the RewindZone archive.`
@@ -170,8 +274,9 @@ for (const article of articles) {
     canonicalPath: `/${article.slug}/`,
     article,
     body: `<main id="main">
-      <header class="article-header"><div class="eyebrow">From the RewindZone archive</div><h1>${escapeHtml(article.title)}</h1>${article.excerpt ? `<p class="article-deck">${escapeHtml(article.excerpt)}</p>` : ''}<p class="article-meta">${escapeHtml(formatDate(article.published_at))} · ${escapeHtml(article.author_name || 'RewindZone')}</p></header>
-      <article class="article-body">${renderBlocks(article)}${adUnit(`${article.id}-end`, 'multiplex')}<p><a href="../">← Back to the archive</a></p></article>
+      ${breadcrumbs([{ label: 'Home', href: '/' }, { label: 'Archive', href: '/archive/' }, { label: article.title }])}
+      <header class="article-header"><div class="eyebrow">From the RewindZone archive</div><h1>${escapeHtml(article.title)}</h1>${article.excerpt ? `<p class="article-deck">${escapeHtml(article.excerpt)}</p>` : ''}<p class="article-meta">Originally published ${escapeHtml(formatDate(article.published_at))} · ${escapeHtml(article.author_name || 'RewindZone')}</p>${labelsBySlug.get(article.slug).filter(label => publishedCategories.has(`${label.group}/${label.slug}`)).length ? `<p class="tag-list">${labelsBySlug.get(article.slug).filter(label => publishedCategories.has(`${label.group}/${label.slug}`)).map(label => `<a href="/categories/${label.group}/${label.slug}/">${escapeHtml(label.label)}</a>`).join('')}</p>` : ''}</header>
+      <article class="article-body">${renderBlocks(article)}${adUnit(`${article.id}-end`, 'multiplex')}${relatedArticles(article).length ? `<aside class="related"><div class="eyebrow">Continue exploring</div><h2>Related archive articles</h2><ul>${relatedArticles(article).map(result => `<li><a href="/${result.candidate.slug}/">${escapeHtml(result.candidate.title)}</a></li>`).join('')}</ul></aside>` : ''}<p><a href="/archive/">← Back to the full archive</a></p></article>
     </main>`,
   }))
 }
@@ -208,7 +313,7 @@ write('404.html', layout({
   body: `<main id="main" class="page-header not-found"><div class="eyebrow">404</div><h1>That reel is missing.</h1><p><a href="/">Return to the archive</a></p></main>`,
 }))
 
-const sitemapUrls = ['/', '/about/', '/privacy/', ...articles.map(article => `/${article.slug}/`)]
+const sitemapUrls = ['/', '/archive/', '/categories/', ...categories.map(category => `/categories/${category.group}/${category.slug}/`), '/about/', '/privacy/', ...articles.map(article => `/${article.slug}/`)]
 write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${sitemapUrls.map(url => `  <url><loc>${siteUrl}${url}</loc></url>`).join('\n')}\n</urlset>\n`)
 write('robots.txt', `User-agent: *\nAllow: /\n\nSitemap: ${siteUrl}/sitemap.xml\n`)
 write('ads.txt', `google.com, pub-6023845436873429, DIRECT, f08c47fec0942fa0\n`)
@@ -222,4 +327,22 @@ fs.mkdirSync(path.join(root, 'migration'), { recursive: true })
 const redirectRows = ['source,target,status', ...articles.map(article => `https://taleventry.com/archive/${article.slug},https://rewindzone.com/${article.slug}/,301`)]
 fs.writeFileSync(path.join(root, 'migration/taleventry-redirects.csv'), `${redirectRows.join('\n')}\n`)
 
-console.log(`Built ${articles.length} articles and ${sitemapUrls.length} sitemap URLs in dist/`)
+const untypedArticles = sortedArticles.filter(article => !labelsBySlug.get(article.slug).some(label => label.group === 'type'))
+const audit = `# RewindZone taxonomy audit
+
+Generated by \`npm run build\`.
+
+Article types use title wording only. Genre labels use clear title/excerpt wording. Decades require an explicit title decade (including 80s/90s) or a parenthesised release year. Article body years, cast-update years and actor lifespan dates are never used.
+
+## Published categories
+
+${categories.map(category => `- ${category.group}/${category.slug}: ${category.articles.length}`).join('\n')}
+
+## Titles without an editorial type (${untypedArticles.length})
+
+${untypedArticles.map(article => `- ${article.slug}: ${article.title}`).join('\n')}
+`
+fs.mkdirSync(path.join(root, 'docs'), { recursive: true })
+fs.writeFileSync(path.join(root, 'docs/taxonomy-audit.md'), audit)
+
+console.log(`Built ${articles.length} articles, ${categories.length} category pages and ${sitemapUrls.length} sitemap URLs. ${untypedArticles.length} articles have no editorial type label.`)
