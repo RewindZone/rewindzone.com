@@ -10,7 +10,7 @@ const adsenseClient = 'ca-pub-6023845436873429'
 const displaySlot = '6279262028'
 const multiplexSlot = '4067463437'
 
-const escapeHtml = (value = '') => String(value)
+const escapeHtml = (value = '') => String(value).trim().replace(/\s+/g, ' ')
   .replaceAll('&', '&amp;')
   .replaceAll('<', '&lt;')
   .replaceAll('>', '&gt;')
@@ -36,24 +36,25 @@ function write(relativePath, content) {
   fs.writeFileSync(destination, content)
 }
 
-function header() {
+function header(rootPrefix) {
   return `<a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
-    <a class="brand" href="/" aria-label="RewindZone home">Rewind<span>Zone</span></a>
-    <nav class="site-nav" aria-label="Main navigation"><a href="/">Archive</a><a href="/about/">About</a></nav>
+    <a class="brand" href="${rootPrefix}" aria-label="RewindZone home">Rewind<span>Zone</span></a>
+    <nav class="site-nav" aria-label="Main navigation"><a href="${rootPrefix}">Archive</a><a href="${rootPrefix}about/">About</a></nav>
   </header>`
 }
 
-function footer() {
+function footer(rootPrefix) {
   return `<footer class="site-footer">
     <span>© ${new Date().getUTCFullYear()} RewindZone</span>
-    <nav aria-label="Footer navigation"><a href="/about/">About</a><a href="/privacy/">Privacy</a></nav>
+    <nav aria-label="Footer navigation"><a href="${rootPrefix}about/">About</a><a href="${rootPrefix}privacy/">Privacy</a></nav>
   </footer>`
 }
 
 function layout({ title, description, canonicalPath = '/', body, article = null, searchable = false }) {
   const pageTitle = title === 'RewindZone' ? title : `${title} | RewindZone`
   const canonical = `${siteUrl}${canonicalPath}`
+  const rootPrefix = canonicalPath === '/' || canonicalPath === '/404.html' ? './' : '../'
   const structuredData = article ? {
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -87,15 +88,15 @@ function layout({ title, description, canonicalPath = '/', body, article = null,
   <meta name="twitter:card" content="summary">
   <meta name="theme-color" content="#f5f2ea">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23171714'/%3E%3Cpath d='M14 14h23c10 0 16 5 16 14 0 6-3 10-9 12l10 10H40L29 39v11H14zm15 10v7h8c3 0 5-1 5-4 0-2-2-3-5-3z' fill='%23f5f2ea'/%3E%3Cpath d='M50 10h8v44h-8z' fill='%23bd291e'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="${rootPrefix}styles.css">
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}" crossorigin="anonymous"></script>
   <script type="application/ld+json">${JSON.stringify(structuredData).replaceAll('<', '\\u003c')}</script>
 </head>
 <body>
-  ${header()}
+  ${header(rootPrefix)}
   ${body}
-  ${footer()}
-  ${searchable ? '<script src="/site.js" defer></script>' : ''}
+  ${footer(rootPrefix)}
+  ${searchable ? `<script src="${rootPrefix}site.js" defer></script>` : ''}
 </body>
 </html>`
 }
@@ -141,7 +142,7 @@ const cards = sortedArticles.map(article => {
   const search = `${article.title} ${article.excerpt || ''}`.toLocaleLowerCase()
   return `<li class="article-card" data-article-card data-search="${escapeHtml(search)}">
     <time datetime="${escapeHtml(isoDate(article.published_at))}">${escapeHtml(formatDate(article.published_at))}</time>
-    <div><h2><a href="/${escapeHtml(article.slug)}/">${escapeHtml(article.title)}</a></h2>${article.excerpt ? `<p>${escapeHtml(article.excerpt)}</p>` : ''}</div>
+    <div><h2><a href="./${escapeHtml(article.slug)}/">${escapeHtml(article.title)}</a></h2>${article.excerpt ? `<p>${escapeHtml(article.excerpt)}</p>` : ''}</div>
   </li>`
 }).join('\n')
 
@@ -166,7 +167,7 @@ for (const article of articles) {
     article,
     body: `<main id="main">
       <header class="article-header"><div class="eyebrow">From the RewindZone archive</div><h1>${escapeHtml(article.title)}</h1>${article.excerpt ? `<p class="article-deck">${escapeHtml(article.excerpt)}</p>` : ''}<p class="article-meta">${escapeHtml(formatDate(article.published_at))} · ${escapeHtml(article.author_name || 'RewindZone')}</p></header>
-      <article class="article-body">${renderBlocks(article)}${adUnit(`${article.id}-end`, 'multiplex')}<p><a href="/">← Back to the archive</a></p></article>
+      <article class="article-body">${renderBlocks(article)}${adUnit(`${article.id}-end`, 'multiplex')}<p><a href="../">← Back to the archive</a></p></article>
     </main>`,
   }))
 }
