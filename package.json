@@ -1,0 +1,11 @@
+{
+  "name": "rewindzone.com",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The static, text-only RewindZone film and television archive.",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/check.mjs"
+  }
+}

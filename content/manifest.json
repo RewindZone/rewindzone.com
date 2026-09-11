@@ -1,0 +1,16 @@
+{
+  "corpus": "rewindzone-archive",
+  "source_table": "articles",
+  "filter": {
+    "status": "published"
+  },
+  "exported_at": "2026-09-11T10:40:23.422Z",
+  "article_count": 342,
+  "unique_slug_count": 342,
+  "url_pattern": "/{slug}",
+  "legacy_host": "www.rewindzone.com",
+  "excluded_fields": [
+    "featured_image_url"
+  ],
+  "content_encoding": "JSON value preserved exactly as returned by Supabase (including JSONB structure)"
+}
