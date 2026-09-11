@@ -6,6 +6,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const out = path.join(root, 'dist')
 const articles = JSON.parse(fs.readFileSync(path.join(root, 'content/articles.json'), 'utf8'))
 const siteUrl = 'https://rewindzone.com'
+const googleAnalyticsId = 'G-SKE6RQ6WEN'
 const adsenseClient = 'ca-pub-6023845436873429'
 const displaySlot = '6279262028'
 const multiplexSlot = '4067463437'
@@ -89,6 +90,8 @@ function layout({ title, description, canonicalPath = '/', body, article = null,
   <meta name="theme-color" content="#f5f2ea">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23171714'/%3E%3Cpath d='M14 14h23c10 0 16 5 16 14 0 6-3 10-9 12l10 10H40L29 39v11H14zm15 10v7h8c3 0 5-1 5-4 0-2-2-3-5-3z' fill='%23f5f2ea'/%3E%3Cpath d='M50 10h8v44h-8z' fill='%23bd291e'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="${rootPrefix}styles.css">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsId}"></script>
+  <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', '${googleAnalyticsId}');</script>
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}" crossorigin="anonymous"></script>
   <script type="application/ld+json">${JSON.stringify(structuredData).replaceAll('<', '\\u003c')}</script>
 </head>
