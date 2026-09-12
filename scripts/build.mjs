@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import crypto from 'node:crypto'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -10,6 +11,11 @@ const googleAnalyticsId = 'G-SKE6RQ6WEN'
 const adsenseClient = 'ca-pub-6023845436873429'
 const displaySlot = '6279262028'
 const multiplexSlot = '4067463437'
+const stylesContent = fs.readFileSync(path.join(root, 'src/styles.css'), 'utf8')
+const siteContent = fs.readFileSync(path.join(root, 'src/site.js'), 'utf8')
+const assetVersion = content => crypto.createHash('sha256').update(content).digest('hex').slice(0, 12)
+const stylesUrl = `/styles.css?v=${assetVersion(stylesContent)}`
+const siteUrlWithVersion = `/site.js?v=${assetVersion(siteContent)}`
 
 const escapeHtml = (value = '') => String(value).trim().replace(/\s+/g, ' ')
   .replaceAll('&', '&amp;')
@@ -90,7 +96,7 @@ ${canonicalPath === '/404.html' ? '  <meta name="robots" content="noindex">' : '
   <meta name="twitter:card" content="summary">
   <meta name="theme-color" content="#f5f2ea">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23171714'/%3E%3Cpath d='M14 14h23c10 0 16 5 16 14 0 6-3 10-9 12l10 10H40L29 39v11H14zm15 10v7h8c3 0 5-1 5-4 0-2-2-3-5-3z' fill='%23f5f2ea'/%3E%3Cpath d='M50 10h8v44h-8z' fill='%23bd291e'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="${rootPrefix}styles.css">
+  <link rel="stylesheet" href="${stylesUrl}">
   <script async src="https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsId}"></script>
   <script>window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', '${googleAnalyticsId}');</script>
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseClient}" crossorigin="anonymous"></script>
@@ -100,7 +106,7 @@ ${canonicalPath === '/404.html' ? '  <meta name="robots" content="noindex">' : '
   ${header(rootPrefix)}
   ${body}
   ${footer(rootPrefix)}
-  ${searchable ? `<script src="${rootPrefix}site.js" defer></script>` : ''}
+  ${searchable ? `<script src="${siteUrlWithVersion}" defer></script>` : ''}
 </body>
 </html>`
 }
@@ -208,7 +214,7 @@ function articleCard(article) {
 function filters(selected = '', scope = sortedArticles) {
   const scopeSlugs = new Set(scope.map(article => article.slug))
   const options = categories.filter(category => category.articles.some(article => scopeSlugs.has(article.slug)))
-  return `<div class="archive-tools"><div><label for="archive-search">Search the archive</label><input id="archive-search" data-archive-search type="search" placeholder="Title, excerpt or category" autocomplete="off"></div><div><label for="archive-category">Filter by category</label><select id="archive-category" data-archive-category><option value="">All categories</option>${options.map(category => `<option value="${category.group}/${category.slug}"${selected === `${category.group}/${category.slug}` ? ' selected' : ''}>${escapeHtml(category.label)} (${category.articles.filter(article => scopeSlugs.has(article.slug)).length})</option>`).join('')}</select></div><button type="button" data-filter-reset>Reset</button><p class="result-count" data-result-count aria-live="polite">${scope.length} articles</p></div><p class="no-results" data-no-results role="status" hidden>No archive articles match that search and category. Clear one or both filters and try again.</p>`
+  return `<div class="archive-tools"><div><label for="archive-search">Search the archive</label><input id="archive-search" data-archive-search type="search" placeholder="Search articles…" autocomplete="off"></div><div><label for="archive-category">Filter by category</label><select id="archive-category" data-archive-category><option value="">All categories</option>${options.map(category => `<option value="${category.group}/${category.slug}"${selected === `${category.group}/${category.slug}` ? ' selected' : ''}>${escapeHtml(category.label)} (${category.articles.filter(article => scopeSlugs.has(article.slug)).length})</option>`).join('')}</select></div><button type="button" data-filter-reset>Reset</button><p class="result-count" data-result-count aria-live="polite">${scope.length} articles</p></div><p class="no-results" data-no-results role="status" hidden>No archive articles match that search and category. Clear one or both filters and try again.</p>`
 }
 
 const ignoredRelatedWords = new Set('movie movies film films from with that then where best your this cast ranked ranking what happened now years later today star stars story stories actor actors actress director greatest worst most about which their they have still look back life into after before guide essential forgotten classic classics complete revisit revisited review reviews cinema hollywood history timeless underrated unforgettable memorable performances revealed updated update'.split(' '))
@@ -274,7 +280,7 @@ for (const article of articles) {
     canonicalPath: `/${article.slug}/`,
     article,
     body: `<main id="main">
-      ${breadcrumbs([{ label: 'Home', href: '/' }, { label: 'Archive', href: '/archive/' }, { label: article.title }])}
+      ${breadcrumbs([{ label: 'Home', href: '/' }, { label: 'Archive', href: '/archive/' }, { label: 'Article' }])}
       <header class="article-header"><div class="eyebrow">From the RewindZone archive</div><h1>${escapeHtml(article.title)}</h1>${article.excerpt ? `<p class="article-deck">${escapeHtml(article.excerpt)}</p>` : ''}<p class="article-meta">Originally published ${escapeHtml(formatDate(article.published_at))} · ${escapeHtml(article.author_name || 'RewindZone')}</p>${labelsBySlug.get(article.slug).filter(label => publishedCategories.has(`${label.group}/${label.slug}`)).length ? `<p class="tag-list">${labelsBySlug.get(article.slug).filter(label => publishedCategories.has(`${label.group}/${label.slug}`)).map(label => `<a href="/categories/${label.group}/${label.slug}/">${escapeHtml(label.label)}</a>`).join('')}</p>` : ''}</header>
       <article class="article-body">${renderBlocks(article)}${adUnit(`${article.id}-end`, 'multiplex')}${relatedArticles(article).length ? `<aside class="related"><div class="eyebrow">Continue exploring</div><h2>Related archive articles</h2><ul>${relatedArticles(article).map(result => `<li><a href="/${result.candidate.slug}/">${escapeHtml(result.candidate.title)}</a></li>`).join('')}</ul></aside>` : ''}<p><a href="/archive/">← Back to the full archive</a></p></article>
     </main>`,
@@ -320,8 +326,8 @@ write('ads.txt', `google.com, pub-6023845436873429, DIRECT, f08c47fec0942fa0\n`)
 write('CNAME', `rewindzone.com\n`)
 write('.nojekyll', '')
 write('_headers', `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n`)
-write('styles.css', fs.readFileSync(path.join(root, 'src/styles.css'), 'utf8'))
-write('site.js', fs.readFileSync(path.join(root, 'src/site.js'), 'utf8'))
+write('styles.css', stylesContent)
+write('site.js', siteContent)
 
 fs.mkdirSync(path.join(root, 'migration'), { recursive: true })
 const redirectRows = ['source,target,status', ...articles.map(article => `https://taleventry.com/archive/${article.slug},https://rewindzone.com/${article.slug}/,301`)]

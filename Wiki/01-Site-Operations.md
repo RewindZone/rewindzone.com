@@ -11,6 +11,9 @@ The production repository is `RewindZone/rewindzone.com`. GitHub Pages publishes
 - `/robots.txt` allows crawling and advertises the sitemap. Search engines decide whether and when to index pages.
 - Shared asset and navigation URLs start at `/`, so the 404 page works even at deeply nested missing URLs.
 - Archive and category pages provide labelled combined title/excerpt search and category filters, reset control, live result counts and no-result feedback. Category pages expose only filter options represented by their rendered cards; without JavaScript the pre-filtered category lists and all links remain usable.
+- Generated HTML references `styles.css` and `site.js` with deterministic SHA-256 content-hash query versions so updated pages request the corresponding assets. Published filenames remain unchanged; checks resolve local files without query strings.
+- Search controls use explicit grid rows and a 2.75rem height. Do not restore a flex-basis to the search wrapper: under the old mobile column layout it became a 22rem-tall box. Category cards use three columns on desktop, two on tablets and one on narrow phones.
+- Article headings and breadcrumbs align with the reading column. Breadcrumbs use a short Article label rather than repeating the full headline. Browser checks must cover visible control sizing and page spacing, not only horizontal overflow.
 - If Google Search Console is configured for this domain, submit `https://rewindzone.com/sitemap.xml` there and inspect indexing reports. Publishing a sitemap is not the same as submitting it to a private Search Console property.
 
 ## Publishing
