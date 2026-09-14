@@ -24,4 +24,6 @@ Run `npm run build` then `npm run check`. Commit source changes and generated ou
 
 Analytics uses `G-SKE6RQ6WEN`. AdSense uses publisher `ca-pub-6023845436873429`; `/ads.txt` contains its authorisation record. `/privacy/` describes these services.
 
+AdSense manual display uses slot `8186245186` (replacing `6279262028`) with responsive `auto` format. Multiplex uses slot `3802120921` (replacing `4067463437`) with `autorelaxed` format. Both share a single head loader, which must be included once. The publisher remains `ca-pub-6023845436873429`. Auto ads account settings and ad delivery have not been verified by these code checks.
+
 The publisher plans to configure Google's AdSense consent message. A privacy page alone does not implement consent: the current Analytics loader starts immediately and needs separate consent integration when that setup is completed. Do not describe consent handling as verified until browser behaviour and the account configuration have been checked.

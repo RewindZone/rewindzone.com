@@ -9,8 +9,8 @@ const articles = JSON.parse(fs.readFileSync(path.join(root, 'content/articles.js
 const siteUrl = 'https://rewindzone.com'
 const googleAnalyticsId = 'G-SKE6RQ6WEN'
 const adsenseClient = 'ca-pub-6023845436873429'
-const displaySlot = '6279262028'
-const multiplexSlot = '4067463437'
+const displaySlot = '8186245186'
+const multiplexSlot = '3802120921'
 const stylesContent = fs.readFileSync(path.join(root, 'src/styles.css'), 'utf8')
 const siteContent = fs.readFileSync(path.join(root, 'src/site.js'), 'utf8')
 const assetVersion = content => crypto.createHash('sha256').update(content).digest('hex').slice(0, 12)
